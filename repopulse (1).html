@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RepoPulse — Repository Risk & Readiness Intelligence</title>
+<link rel="icon" href="data:,">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --bg2:#ffffff; --panel:#f7f8fa; --panel-solid:#ffffff; --panel2:#f5f6f9;
+  --line:#e2e5eb; --line-soft:#eef0f4;
+  --text:#161b26; --muted:#4b5568; --muted2:#8992a3;
+  --violet:#1e3a8a; --violet2:#2563eb; --cyan:#0f766e; --violet-dim:#e8ecfb;
+  --safe:#166534; --safe-dim:#e2f3e7;
+  --warn:#92400e; --warn-dim:#fbf0dd;
+  --danger:#991b1b; --danger-dim:#fbe6e6;
+  --font-h:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --font-m:ui-monospace,'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  --shadow:0 10px 28px -18px rgba(16,24,58,.12);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font-h);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+body{-webkit-font-smoothing:antialiased;position:relative;}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 70px;position:relative;z-index:1;}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px;}
+.brand{display:flex;align-items:center;gap:13px;}
+.mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--violet),var(--violet2));
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-weight:600;color:#fff;font-size:15px;flex:none;
+  box-shadow:0 8px 20px -6px rgba(139,127,251,.55);}
+.brand h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.2px;}
+.brand p{margin:2px 0 0;font-size:12px;color:var(--muted);}
+.tag{font-family:var(--font-m);font-size:11px;color:var(--violet);border:1px solid rgba(139,127,251,.35);
+  background:var(--violet-dim);padding:6px 12px;border-radius:999px;white-space:nowrap;}
+
+.panel{background:var(--panel-solid);border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:var(--shadow);}
+*:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+.searchbar{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;height:48px;}
+.searchbar input{flex:1;min-width:220px;background:var(--panel2);border:1px solid var(--line);
+  color:var(--text);border-radius:12px;padding:0 16px;height:48px;font-family:var(--font-m);font-size:13.5px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.searchbar input:focus{border-color:var(--violet);box-shadow:0 0 0 4px rgba(139,127,251,.15);}
+.btn{background:linear-gradient(135deg,var(--violet),var(--violet2));color:#fff;border:none;border-radius:12px;padding:0 22px;height:48px;
+  font-family:var(--font-h);font-weight:600;font-size:14px;cursor:pointer;transition:transform .15s,box-shadow .15s;
+  box-shadow:0 8px 18px -8px rgba(139,127,251,.6);display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
+.btn:hover{transform:translateY(-1px);box-shadow:0 12px 22px -8px rgba(139,127,251,.7);}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.55;cursor:default;transform:none;}
+.btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:0 18px;height:48px;font-size:13px;box-shadow:none;position:relative;}
+.btn.ghost:hover{border-color:var(--violet);transform:none;box-shadow:none;color:var(--violet);}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.hint{font-size:12px;color:var(--muted2);margin:-14px 0 22px 3px;}
+.hint button{background:none;border:none;color:var(--violet);font-family:var(--font-m);font-size:12px;cursor:pointer;padding:0;}
+
+.histcount{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 4px;
+  background:var(--violet);color:#fff;border-radius:999px;font-size:10px;font-family:var(--font-m);font-weight:600;}
+.history-panel{border:1px solid var(--line);border-radius:16px;background:var(--panel2);overflow:hidden;margin:-8px 0 22px;
+  animation:dropin .18s ease;}
+@keyframes dropin{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.history-panel .hp-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);}
+.history-panel .hp-head h4{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600;}
+.history-panel .hp-clear{background:none;border:none;color:var(--muted2);font-size:11.5px;cursor:pointer;font-family:var(--font-m);}
+.history-panel .hp-clear:hover{color:var(--danger);}
+.history-list{max-height:270px;overflow-y:auto;}
+.history-list::-webkit-scrollbar{width:8px;}
+.history-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px;}
+.history-row{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;border-bottom:1px solid var(--line-soft);transition:background .15s;}
+.history-row:last-child{border-bottom:none;}
+.history-row:hover{background:var(--panel-solid);}
+.hr-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+.hr-main{flex:1;min-width:0;}
+.hr-name{font-family:var(--font-m);font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hr-meta{font-size:11px;color:var(--muted2);margin-top:2px;}
+.hr-score{font-family:var(--font-m);font-size:12px;color:var(--muted);white-space:nowrap;text-align:right;}
+.hr-del{background:none;border:none;color:var(--muted2);font-size:15px;line-height:1;cursor:pointer;padding:4px 7px;border-radius:7px;flex:none;}
+.hr-del:hover{color:var(--danger);background:var(--danger-dim);}
+.history-empty{padding:26px 16px;text-align:center;font-size:12.5px;color:var(--muted2);}
+
+#empty{color:var(--muted);text-align:center;padding:56px 10px;font-size:14px;}
+#empty span{font-family:var(--font-m);color:var(--muted2);font-size:12px;display:block;margin-top:8px;}
+
+#result{display:none;}
+.repohead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+.repohead h2{margin:0;font-size:21px;letter-spacing:-.2px;}
+.repohead p{margin:6px 0 0;color:var(--muted);font-size:13.5px;max-width:560px;line-height:1.55;}
+.mode{font-family:var(--font-m);font-size:11px;padding:5px 11px;border-radius:8px;white-space:nowrap;font-weight:500;}
+.mode.live{background:var(--safe-dim);color:var(--safe);border:1px solid rgba(52,211,153,.3);}
+.mode.demo{background:var(--warn-dim);color:var(--warn);border:1px solid rgba(251,191,36,.3);}
+
+.summary{font-size:13.5px;line-height:1.65;color:var(--text);background:var(--panel2);border:1px solid var(--line);
+  border-left:3px solid var(--violet);border-radius:12px;padding:15px 18px;margin-bottom:20px;}
+.summary b{color:var(--text);}
+
+.report-card{display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap;
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:24px;}
+.report-info{display:flex;gap:14px;align-items:flex-start;}
+.report-icon{width:40px;height:40px;border-radius:11px;background:var(--violet-dim);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+.report-card h3{margin:0 0 4px;font-size:14.5px;font-weight:700;letter-spacing:-.1px;}
+.report-card p{margin:0;font-size:12.5px;color:var(--muted);max-width:440px;line-height:1.5;}
+.report-includes{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:5px 18px;max-width:440px;}
+.report-includes li{font-size:11.5px;color:var(--muted);padding-left:15px;position:relative;line-height:1.4;}
+.report-includes li::before{content:'✓';position:absolute;left:0;top:0;color:var(--violet);font-weight:700;font-size:11px;}
+.report-file{font-family:var(--font-m);font-size:11px;color:var(--muted2);margin-top:10px;}
+.report-side{display:flex;flex-direction:column;align-items:flex-end;gap:12px;flex:none;}
+.report-stats{display:flex;gap:18px;padding:10px 16px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;}
+.report-stats .rs{text-align:center;}
+.report-stats .rs b{display:block;font-family:var(--font-m);font-size:15px;color:var(--text);letter-spacing:-.3px;}
+.report-stats .rs span{font-size:10px;color:var(--muted2);white-space:nowrap;}
+@media(max-width:640px){.report-card{flex-direction:column;align-items:stretch;}.report-side{align-items:stretch;}
+  .report-stats{justify-content:space-between;}.report-card .btn{width:100%;justify-content:center;}}
+
+.section-title{display:flex;align-items:baseline;justify-content:space-between;margin:30px 0 13px;}
+.section-title h3{margin:0;font-size:13px;letter-spacing:1px;color:var(--text);text-transform:uppercase;font-weight:600;}
+.section-title span{font-size:11.5px;color:var(--muted2);font-family:var(--font-m);}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:680px){.grid{grid-template-columns:1fr;}}
+
+.card{background:var(--panel-solid);border:1px solid var(--line);border-radius:18px;padding:22px;transition:border-color .15s,transform .15s;}
+.card h3{margin:0 0 15px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:600;}
+
+.gaugewrap{display:flex;flex-direction:column;align-items:center;}
+.gaugelabel{font-family:var(--font-m);font-size:36px;font-weight:600;margin-top:-44px;letter-spacing:-1px;}
+.gaugesub{font-size:12.5px;color:var(--muted);margin-top:4px;}
+.badge{display:inline-block;margin-top:12px;padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;font-family:var(--font-m);}
+.badge.low{background:var(--safe-dim);color:var(--safe);}
+.badge.med{background:var(--warn-dim);color:var(--warn);}
+.badge.high{background:var(--danger-dim);color:var(--danger);}
+
+.status-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;}
+.status-dot{width:14px;height:14px;border-radius:50%;flex:none;margin-top:4px;box-shadow:0 0 0 4px currentColor22;}
+.status-text{font-size:16.5px;font-weight:600;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.status-desc{font-size:12.5px;color:var(--muted);margin-top:3px;}
+.chip{font-family:var(--font-m);font-size:10.5px;padding:3px 9px;border-radius:999px;font-weight:600;}
+.chip.complete{background:var(--safe-dim);color:var(--safe);}
+.chip.progress{background:var(--warn-dim);color:var(--warn);}
+.chip.incomplete{background:var(--danger-dim);color:var(--danger);}
+.progressbar{height:9px;border-radius:999px;background:var(--panel2);overflow:hidden;margin-top:16px;}
+.progressbar div{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1);}
+.progresslabel{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:11px;color:var(--muted2);margin-top:7px;}
+
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+@media(max-width:820px){.metrics{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:480px){.metrics{grid-template-columns:repeat(2,1fr);}}
+.metric{background:var(--panel-solid);border:1px solid var(--line);border-radius:16px;padding:16px 17px;position:relative;overflow:hidden;transition:transform .15s,border-color .15s;}
+.metric:hover{transform:translateY(-2px);border-color:rgba(139,127,251,.4);}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--violet),var(--cyan));opacity:.7;}
+.metric .val{font-family:var(--font-m);font-size:20px;font-weight:600;letter-spacing:-.5px;}
+.metric .lbl{font-size:11.5px;color:var(--muted);margin-top:4px;}
+
+.subrisks{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+@media(max-width:680px){.subrisks{grid-template-columns:1fr 1fr;}}
+.subrisk .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+.subrisk .name{font-size:12.5px;color:var(--text);font-weight:600;}
+.subrisk .score{font-family:var(--font-m);font-size:13px;color:var(--muted);}
+.subrisk .track{height:7px;border-radius:999px;background:var(--panel2);overflow:hidden;}
+.subrisk .track div{height:100%;border-radius:999px;}
+.subrisk .why{font-size:11.5px;color:var(--muted2);margin-top:7px;line-height:1.45;}
+
+.checklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;}
+.checklist li{display:flex;align-items:flex-start;gap:11px;font-size:13.5px;line-height:1.45;}
+.ci{width:21px;height:21px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;margin-top:1px;}
+.ci.ok{background:var(--safe-dim);color:var(--safe);}
+.ci.bad{background:var(--danger-dim);color:var(--danger);}
+.checklist b{font-weight:600;}
+.checklist small{display:block;color:var(--muted);font-size:12px;margin-top:1px;}
+
+.langbar{display:flex;height:13px;border-radius:999px;overflow:hidden;margin-bottom:12px;gap:1px;}
+.langlegend{display:flex;flex-wrap:wrap;gap:10px 18px;}
+.langlegend span{font-size:12px;color:var(--muted);font-family:var(--font-m);display:flex;align-items:center;gap:6px;}
+.dot{width:8px;height:8px;border-radius:2px;}
+
+table.folders{width:100%;border-collapse:collapse;font-size:13px;}
+table.folders th{text-align:left;font-size:10.5px;color:var(--muted2);font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  padding:8px 12px;border-bottom:1px solid var(--line);}
+table.folders td{padding:12px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+table.folders tr:last-child td{border-bottom:none;}
+table.folders tbody tr{transition:background .15s;}
+table.folders tbody tr:hover{background:var(--panel2);}
+.fname{font-family:var(--font-m);font-size:12.5px;}
+.frisk{display:inline-flex;align-items:center;gap:8px;}
+.frisk .bar{width:64px;height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;}
+.frisk .bar div{height:100%;}
+.ftag{font-family:var(--font-m);font-size:10.5px;padding:2px 8px;border-radius:7px;font-weight:600;}
+.ftag.low{background:var(--safe-dim);color:var(--safe);}
+.ftag.med{background:var(--warn-dim);color:var(--warn);}
+.ftag.high{background:var(--danger-dim);color:var(--danger);}
+.foldnote{font-size:11.5px;color:var(--muted2);margin-top:12px;}
+.loc-note{font-size:11px;color:var(--muted2);margin-top:6px;}
+
+.method{background:linear-gradient(160deg,rgba(139,127,251,.10),rgba(56,217,224,.06));
+  border:1px solid rgba(139,127,251,.25);border-radius:20px;padding:26px;margin-top:30px;}
+.method h3{margin:0 0 5px;font-size:15px;font-weight:700;}
+.method p.lead{margin:0 0 16px;font-size:13px;color:var(--text);opacity:.8;}
+.method ul{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px 22px;}
+@media(max-width:680px){.method ul{grid-template-columns:1fr;}}
+.method li{font-size:13px;display:flex;gap:10px;align-items:flex-start;line-height:1.45;}
+.method li .ico{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px;}
+.method li b{display:block;font-size:13px;}
+.method li small{color:var(--muted);font-size:11.5px;}
+.method .powered{font-style:italic;font-size:12px;color:var(--muted);border-top:1px solid rgba(139,127,251,.2);padding-top:14px;}
+
+footer{margin-top:30px;text-align:center;font-size:11.5px;color:var(--muted2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">RP</div>
+      <div>
+        <h1>RepoPulse</h1>
+        <p>Repository Risk &amp; Readiness Intelligence</p>
+      </div>
+    </div>
+    <div class="tag">Module · Department Innovation Intelligence Platform</div>
+  </header>
+
+  <div class="panel">
+    <div class="searchbar">
+      <input id="urlInput" type="text" placeholder="Paste a public GitHub repo URL — e.g. https://github.com/facebook/react" />
+      <button class="btn" id="goBtn">Analyze Repository</button>
+      <button class="btn ghost" id="historyBtn">🕘 History <span class="histcount" id="historyCount" style="display:none;">0</span></button>
+    </div>
+    <div class="hint">Pulls live activity, ownership, folder and health signals from GitHub before you build on top of someone else's code. No login needed. <button id="demoBtn">Try a sample repo →</button></div>
+
+    <div class="history-panel" id="historyPanel" style="display:none;">
+      <div class="hp-head"><h4>Recent analyses</h4><button class="hp-clear" id="historyClear">Clear all</button></div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div id="empty">Enter a repository above to get its risk score, completion verdict, per-folder risk report and a downloadable PDF summary.
+      <span>Built for students &amp; faculty screening projects, dependencies and hackathon starter repos. Past analyses are saved on this device so you can revisit them without re-fetching.</span>
+    </div>
+
+    <div id="result">
+      <div class="repohead">
+        <div>
+          <h2 id="rName">—</h2>
+          <p id="rDesc"></p>
+        </div>
+        <div class="mode" id="rMode">live</div>
+      </div>
+      <div class="summary" id="rSummary"></div>
+
+      <div class="report-card">
+        <div class="report-info">
+          <div class="report-icon">📄</div>
+          <div>
+            <h3>Download full report</h3>
+            <p>A print-ready PDF with the risk breakdown, completion verdict, exact codebase line count and per-folder analysis — ready to attach to coursework or a project review.</p>
+            <ul class="report-includes">
+              <li>Executive summary &amp; verdict</li>
+              <li>Risk breakdown by category</li>
+              <li>Per-folder files, size &amp; LOC table</li>
+              <li>Methodology notes</li>
+            </ul>
+            <div class="report-file" id="reportFileName">—</div>
+          </div>
+        </div>
+        <div class="report-side">
+          <div class="report-stats" id="reportStats"></div>
+          <button class="btn" id="pdfBtn">⬇ Download PDF Report</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Overall risk score</h3>
+          <div class="gaugewrap">
+            <svg id="gauge" width="220" height="130" viewBox="0 0 220 130"></svg>
+            <div class="gaugelabel" id="gaugeNum">–</div>
+            <div class="gaugesub">out of 100 · lower is safer</div>
+            <div class="badge" id="riskBadge">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Completion verdict</h3>
+          <div class="status-row">
+            <div class="status-dot" id="statusDot"></div>
+            <div>
+              <div class="status-text" id="statusText">— <span class="chip" id="statusChip"></span></div>
+              <div class="status-desc" id="statusDesc">—</div>
+            </div>
+          </div>
+          <div class="progressbar"><div id="completionBar"></div></div>
+          <div class="progresslabel"><span>Est. completion / maturity</span><span id="completionPct">–%</span></div>
+        </div>
+      </div>
+
+      <div class="metrics" id="metricsRow"></div>
+
+      <div class="section-title"><h3>Risk breakdown</h3><span>4 signal categories, weighted into the overall score</span></div>
+      <div class="card"><div class="subrisks" id="subrisks"></div></div>
+
+      <div class="grid" style="margin-top:16px;">
+        <div class="card">
+          <h3>Should you use this repo?</h3>
+          <ul class="checklist" id="checklist"></ul>
+        </div>
+        <div class="card">
+          <h3>Language composition</h3>
+          <div class="langbar" id="langBar"></div>
+          <div class="langlegend" id="langLegend"></div>
+        </div>
+      </div>
+
+      <div class="section-title"><h3>Per-folder risk report</h3><span id="folderMeta"></span></div>
+      <div class="card">
+        <table class="folders">
+          <thead><tr><th>Folder</th><th>Files</th><th>Avg. file size</th><th>Lines of code</th><th>Risk</th></tr></thead>
+          <tbody id="folderRows"></tbody>
+        </table>
+        <div class="foldnote" id="folderNote"></div>
+        <div class="loc-note" id="locNote"></div>
+      </div>
+
+      <div class="method">
+        <h3>What RepoPulse checks</h3>
+        <p class="lead">Every score above is built from these signals, pulled directly from GitHub's repository metadata and file tree:</p>
+        <ul>
+          <li><span class="ico">🕒</span><div><b>Maintenance activity</b><small>Days since last push, commit cadence</small></div></li>
+          <li><span class="ico">👥</span><div><b>Ownership &amp; bus factor</b><small>Number of active contributors</small></div></li>
+          <li><span class="ico">🐛</span><div><b>Issue backlog</b><small>Open issue volume vs. repo size</small></div></li>
+          <li><span class="ico">📜</span><div><b>License &amp; governance</b><small>Presence of a license, description quality</small></div></li>
+          <li><span class="ico">🗂️</span><div><b>Folder &amp; file profile</b><small>File count, average size and exact lines of code per folder</small></div></li>
+          <li><span class="ico">🌐</span><div><b>Language composition</b><small>Technology mix across the codebase</small></div></li>
+          <li><span class="ico">📏</span><div><b>Codebase size</b><small>Exact total lines of code, counted directly from each source file's content</small></div></li>
+        </ul>
+        <div class="powered">Powered by the GitHub REST API + rule-based risk and completion modeling — no repository cloning or code execution required.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>RepoPulse extends the platform's GitHub Intelligence &amp; Risk Prediction objectives — screening a repo's health, ownership risk and completeness before a student team adopts or builds on it.</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const COLORS = ['#8b7ffb','#38d9e0','#34d399','#fbbf24','#f87171','#5b8cff'];
+const C_SAFE='#34d399', C_WARN='#fbbf24', C_DANGER='#f87171';
+let LAST = null;
+
+function parseRepo(url){
+  const m = url.trim().match(/github\.com\/([^\/\s]+)\/([^\/\s#?]+)/i);
+  if(!m) return null;
+  return { owner: m[1], repo: m[2].replace(/\.git$/,'') };
+}
+function daysAgo(dateStr){ return Math.round((Date.now() - new Date(dateStr).getTime()) / 86400000); }
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function levelOf(score){ return score<30?'low':score<60?'med':'high'; }
+function colorOf(score){ return score<30?C_SAFE:score<60?C_WARN:C_DANGER; }
+
+// --- Lines-of-code counting: actual line counts from each file's raw content, not a size-based estimate ---
+const LOC_FILE_CAP = 500; // safety cap on very large repos so a scan finishes in reasonable time
+const BINARY_EXT = new Set(['png','jpg','jpeg','gif','bmp','webp','ico','svg','tiff','psd','ai','eps',
+  'woff','woff2','ttf','otf','eot','zip','tar','gz','tgz','rar','7z','bz2','xz',
+  'mp3','mp4','wav','avi','mov','mkv','flac','ogg','webm','pdf','doc','docx','ppt','pptx','xls','xlsx',
+  'exe','dll','so','dylib','bin','class','jar','war','pyc','pyo','o','a','obj','lib','db','sqlite','sqlite3']);
+const GENERATED_FILES = new Set(['package-lock.json','yarn.lock','pnpm-lock.yaml','Pipfile.lock','poetry.lock','Cargo.lock','composer.lock','go.sum']);
+function isCountableFile(path, size){
+  if(typeof size !== 'number' || size <= 0 || size > 2*1024*1024) return false; // skip empty/huge (>2MB) files
+  const base = path.split('/').pop();
+  if(GENERATED_FILES.has(base)) return false;
+  const ext = (base.includes('.') ? base.split('.').pop() : '').toLowerCase();
+  return !BINARY_EXT.has(ext);
+}
+function countLines(text){
+  if(!text) return 0;
+  const body = text.endsWith('\n') ? text.slice(0,-1) : text;
+  return body === '' ? 0 : body.split(/\r\n|\r|\n/).length;
+}
+function encodePath(path){ return path.split('/').map(encodeURIComponent).join('/'); }
+async function mapLimit(items, limit, fn){
+  const ret = new Array(items.length);
+  let i = 0;
+  async function worker(){ while(i < items.length){ const idx = i++; ret[idx] = await fn(items[idx], idx); } }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return ret;
+}
+async function countRepoLines(owner, repo, branch, tree, onProgress){
+  const allBlobs = (tree||[]).filter(n => n.type === 'blob');
+  const candidates = allBlobs.filter(n => isCountableFile(n.path, n.size));
+  const capped = candidates.length > LOC_FILE_CAP;
+  const list = capped ? candidates.slice(0, LOC_FILE_CAP) : candidates;
+  let done = 0, filesCounted = 0;
+  const byFolder = {};
+  let totalLines = 0;
+  await mapLimit(list, 10, async (node) => {
+    try{
+      const url = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${encodePath(node.path)}`;
+      const res = await fetch(url);
+      if(res.ok){
+        const text = await res.text();
+        const lines = countLines(text);
+        totalLines += lines;
+        const parts = node.path.split('/');
+        const folder = parts.length > 1 ? parts[0] : '(root files)';
+        byFolder[folder] = (byFolder[folder] || 0) + lines;
+        filesCounted++;
+      }
+    }catch(e){ /* unreadable file — skipped from the count */ }
+    done++;
+    if(onProgress) onProgress(done, list.length);
+  });
+  return { totalLines, byFolder, filesCounted, capped, scanned: list.length, totalBlobs: allBlobs.length };
+}
+function fmtLOC(n){ return (n||0).toLocaleString(); }
+
+async function fetchLive(owner, repo){
+  const base = `https://api.github.com/repos/${owner}/${repo}`;
+  const [repoRes, commitsRes, contribRes, langRes] = await Promise.all([
+    fetch(base), fetch(base+'/commits?per_page=30'),
+    fetch(base+'/contributors?per_page=100&anon=1'), fetch(base+'/languages')
+  ]);
+  if(!repoRes.ok) throw new Error('not found');
+  const repoData = await repoRes.json();
+  const commits = commitsRes.ok ? await commitsRes.json() : [];
+  const contributors = contribRes.ok ? await contribRes.json() : [];
+  const languages = langRes.ok ? await langRes.json() : {};
+  let tree = [], truncated = false;
+  try{
+    const branch = repoData.default_branch || 'main';
+    const treeRes = await fetch(`${base}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+    if(treeRes.ok){ const t = await treeRes.json(); tree = t.tree||[]; truncated = !!t.truncated; }
+  }catch(e){}
+  return { repoData, commits, contributors, languages, tree, truncated, live:true };
+}
+
+function buildDemo(owner, repo){
+  const h = hashStr(owner+'/'+repo);
+  const rnd = (n) => (h % n + n) % n;
+  const pushedDaysAgo = rnd(400);
+  const createdDaysAgo = pushedDaysAgo + 200 + rnd(900);
+  const contributorsN = 1 + rnd(9);
+  const openIssues = rnd(60);
+  const stars = rnd(4000);
+  const hasLicense = rnd(2) === 0;
+  const now = Date.now();
+  const commits = Array.from({length: Math.min(30, 3+rnd(27))}, (_,i)=>({
+    commit:{ author:{ date: new Date(now - (pushedDaysAgo+i*rnd(15))*86400000).toISOString() } }
+  }));
+  const contributors = Array.from({length: contributorsN}, (_,i)=>({login:'contributor'+i, contributions: 50-rnd(45)}));
+  const langKeys = ['JavaScript','Python','TypeScript','HTML','CSS','Java'];
+  const languages = {};
+  langKeys.slice(0, 2+rnd(3)).forEach((k,i)=> languages[k] = 1000 - i*rnd(300) + 50);
+  const folders = ['src','lib','tests','docs','components','utils'].slice(0, 3+rnd(4));
+  const tree = [];
+  folders.forEach((f,fi)=>{
+    const nFiles = 3 + rnd(20) + fi;
+    for(let i=0;i<nFiles;i++){
+      tree.push({ path: `${f}/file${i}.${['js','py','ts','md'][rnd(4)]}`, type:'blob', size: 500 + rnd(9000) + fi*300 });
+    }
+  });
+  return {
+    repoData:{
+      name: repo, full_name: owner+'/'+repo,
+      description: `Sample analysis for ${owner}/${repo} — live GitHub data was unavailable, so representative demo data is shown.`,
+      pushed_at: new Date(now - pushedDaysAgo*86400000).toISOString(),
+      created_at: new Date(now - createdDaysAgo*86400000).toISOString(),
+      open_issues_count: openIssues, stargazers_count: stars, forks_count: rnd(500),
+      license: hasLicense ? {name:'MIT License'} : null, archived: false, default_branch:'main'
+    },
+    commits, contributors, languages, tree, truncated:false, live:false
+  };
+}
+
+function computeAnalysis(data){
+  const r = data.repoData;
+  const lastPush = daysAgo(r.pushed_at);
+  const age = daysAgo(r.created_at);
+  const contributorsN = Math.max(data.contributors.length, 1);
+  const openIssues = r.open_issues_count || 0;
+  const hasLicense = !!r.license;
+  const hasDesc = !!(r.description && r.description.length > 20);
+
+  const maintenanceRisk = Math.min(100, lastPush>365?85:lastPush>180?55:lastPush>60?25:5);
+  const ownershipRisk = Math.min(100, contributorsN<=1?80:contributorsN<=3?45:contributorsN<=6?20:5);
+  const backlogRisk = Math.min(100, openIssues>80?85:openIssues>30?55:openIssues>10?25:5);
+  const governanceRisk = Math.min(100, (hasLicense?0:55) + (hasDesc?0:25) + (r.archived?20:0));
+
+  const risk = Math.round(maintenanceRisk*0.35 + ownershipRisk*0.3 + backlogRisk*0.2 + governanceRisk*0.15);
+  const riskLevel = levelOf(risk);
+
+  let completion = 0;
+  completion += Math.min(40, (age/365)*20 + 10);
+  completion += hasLicense ? 15 : 0;
+  completion += lastPush < 180 ? 20 : 5;
+  completion += contributorsN > 1 ? 15 : 5;
+  completion += hasDesc ? 10 : 0;
+  completion = Math.min(100, Math.round(completion));
+  const completionTag = completion>=70?'complete':completion>=40?'progress':'incomplete';
+  const completionLabel = completion>=70?'COMPLETE':completion>=40?'IN PROGRESS':'INCOMPLETE';
+
+  let status, statusDesc, statusColor;
+  if(r.archived){ status='Archived / Discontinued'; statusDesc='Repository has been archived by its owner.'; statusColor=C_WARN; }
+  else if(lastPush <= 30 && completion >= 65){ status='Active & Healthy'; statusDesc='Recently updated with solid project signals.'; statusColor=C_SAFE; }
+  else if(lastPush <= 180){ status='Actively Maintained'; statusDesc='Updated within the last 6 months.'; statusColor=C_WARN; }
+  else { status='Inactive / Stale'; statusDesc=`No push activity in over ${Math.floor(lastPush/30)} months.`; statusColor=C_DANGER; }
+
+  const summary = `${r.full_name || r.name} is assessed as <b>${completionLabel.toLowerCase()}</b> `
+    + `(${completion}% maturity) with an overall risk score of <b>${risk}/100</b> (${riskLevel==='low'?'low':riskLevel==='med'?'moderate':'high'} risk). `
+    + `It was last updated ${lastPush} day${lastPush===1?'':'s'} ago, is maintained by ${contributorsN} contributor${contributorsN===1?'':'s'}, `
+    + `and currently has ${openIssues} open issue${openIssues===1?'':'s'}${hasLicense?', and carries an open-source license.':', and has no license on file.'}`;
+
+  return { lastPush, age, contributorsN, openIssues, hasLicense, hasDesc, risk, riskLevel,
+    maintenanceRisk, ownershipRisk, backlogRisk, governanceRisk,
+    completion, completionTag, completionLabel, status, statusDesc, statusColor, summary };
+}
+
+function computeFolders(data){
+  const byFolder = {};
+  (data.tree||[]).forEach(node=>{
+    if(node.type !== 'blob' || typeof node.size !== 'number') return;
+    const parts = node.path.split('/');
+    const folder = parts.length > 1 ? parts[0] : '(root files)';
+    const ext = (node.path.split('.').pop()||'').toLowerCase();
+    if(!byFolder[folder]) byFolder[folder] = { files:0, size:0, exts:new Set() };
+    byFolder[folder].files++; byFolder[folder].size += node.size; byFolder[folder].exts.add(ext);
+  });
+  const rows = Object.entries(byFolder).map(([name, d])=>{
+    const avgSize = d.size / d.files;
+    let score = Math.min(40,(avgSize/8000)*40) + Math.min(30,(d.files/50)*30) + Math.min(20, d.exts.size*4);
+    if(/test|spec/i.test(name)) score *= 0.6;
+    score = Math.round(Math.min(100, score));
+    return { name, files:d.files, avgSize: Math.round(avgSize), locExact:0, score, level: levelOf(score) };
+  }).sort((a,b)=> b.score - a.score);
+  return rows.slice(0, 10);
+}
+
+function drawGauge(score){
+  const svg = $('gauge');
+  const cx=110, cy=110, rad=90;
+  const pct = score/100;
+  const startA = Math.PI, endA = Math.PI - pct*Math.PI;
+  const toXY = (a) => [cx + rad*Math.cos(a), cy + rad*Math.sin(a)];
+  const [x1,y1] = toXY(startA);
+  const [x2,y2] = toXY(endA);
+  const large = pct > 0.5 ? 1 : 0;
+  const color = colorOf(score);
+  svg.innerHTML = `
+    <defs><filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter></defs>
+    <path d="M ${cx-rad} ${cy} A ${rad} ${rad} 0 0 1 ${cx+rad} ${cy}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="16" stroke-linecap="round"/>
+    <path d="M ${x1} ${y1} A ${rad} ${rad} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="16" stroke-linecap="round" filter="url(#glow)"/>
+  `;
+}
+
+function fmtSize(b){ return b>1024 ? (b/1024).toFixed(1)+' KB' : b+' B'; }
+
+function render(analysis, data, folders){
+  const r = data.repoData;
+  $('empty').style.display='none';
+  $('result').style.display='block';
+  $('rName').textContent = r.full_name || r.name;
+  $('rDesc').textContent = r.description || 'No description provided.';
+  $('rMode').textContent = data.live ? 'live data' : 'demo data';
+  $('rMode').className = 'mode ' + (data.live ? 'live' : 'demo');
+  $('reportFileName').textContent = `RepoPulse_${(r.name||'repo')}_report.pdf`;
+  $('reportStats').innerHTML = `
+    <div class="rs"><b>${analysis.risk}/100</b><span>Risk score</span></div>
+    <div class="rs"><b>${analysis.completion}%</b><span>Completion</span></div>
+    <div class="rs"><b>${fmtLOC(analysis.locTotal)}</b><span>Lines of code</span></div>`;
+  $('rSummary').innerHTML = analysis.summary;
+
+  drawGauge(analysis.risk);
+  $('gaugeNum').textContent = analysis.risk;
+  const badge = $('riskBadge');
+  badge.textContent = analysis.riskLevel==='low'?'Low Risk':analysis.riskLevel==='med'?'Moderate Risk':'High Risk';
+  badge.className = 'badge ' + analysis.riskLevel;
+
+  $('statusDot').style.background = analysis.statusColor;
+  $('statusText').innerHTML = analysis.status + ` <span class="chip ${analysis.completionTag}">${analysis.completionLabel}</span>`;
+  $('statusDesc').textContent = analysis.statusDesc;
+  $('completionBar').style.width = analysis.completion+'%';
+  $('completionBar').style.background = analysis.statusColor;
+  $('completionPct').textContent = analysis.completion+'%';
+
+  const metrics = [
+    { val: analysis.lastPush+'d', lbl:'Since last commit' },
+    { val: analysis.contributorsN, lbl:'Contributors (bus factor)' },
+    { val: analysis.openIssues, lbl:'Open issues' },
+    { val: (r.stargazers_count||0).toLocaleString(), lbl:'Stars' },
+    { val: fmtLOC(analysis.locTotal), lbl:'Total lines of code' },
+  ];
+  $('metricsRow').innerHTML = metrics.map(m=>`<div class="metric"><div class="val">${m.val}</div><div class="lbl">${m.lbl}</div></div>`).join('');
+
+  const subs = [
+    { name:'Maintenance', score:analysis.maintenanceRisk, why:`Last push ${analysis.lastPush} days ago.` },
+    { name:'Ownership', score:analysis.ownershipRisk, why:`${analysis.contributorsN} contributor${analysis.contributorsN===1?'':'s'} on record.` },
+    { name:'Issue backlog', score:analysis.backlogRisk, why:`${analysis.openIssues} open issue${analysis.openIssues===1?'':'s'}.` },
+    { name:'Governance', score:analysis.governanceRisk, why:analysis.hasLicense?'License present.':'No license on file.' },
+  ];
+  $('subrisks').innerHTML = subs.map(s=>{
+    const c = colorOf(s.score);
+    return `<div class="subrisk"><div class="top"><span class="name">${s.name}</span><span class="score">${s.score}</span></div>
+      <div class="track"><div style="width:${s.score}%;background:${c}"></div></div>
+      <div class="why">${s.why}</div></div>`;
+  }).join('');
+
+  const checks = [
+    { ok: analysis.hasLicense, label:'Open-source license', sub: analysis.hasLicense ? (r.license.name||'License present') : 'No license found — unclear usage rights.' },
+    { ok: analysis.lastPush <= 180, label:'Recently maintained', sub: `Last commit ${analysis.lastPush} days ago.` },
+    { ok: analysis.contributorsN > 1, label:'More than one contributor', sub: analysis.contributorsN<=1 ? 'Single-maintainer project — higher abandonment risk.' : `${analysis.contributorsN} people contributing.` },
+    { ok: analysis.openIssues < 30, label:'Manageable open issues', sub: `${analysis.openIssues} open issues on the tracker.` },
+    { ok: analysis.risk < 60, label:'Overall risk acceptable', sub: analysis.risk<60 ? 'Safe to build on with normal diligence.' : 'Review closely before depending on this repo.' },
+  ];
+  $('checklist').innerHTML = checks.map(c=>`<li><span class="ci ${c.ok?'ok':'bad'}">${c.ok?'✓':'!'}</span><div><b>${c.label}</b><small>${c.sub}</small></div></li>`).join('');
+
+  const langs = Object.entries(data.languages);
+  const total = langs.reduce((s,[,v])=>s+v,0) || 1;
+  $('langBar').innerHTML = langs.map(([k,v],i)=>`<div style="width:${(v/total*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div>`).join('');
+  $('langLegend').innerHTML = langs.map(([k,v],i)=>`<span><span class="dot" style="background:${COLORS[i%COLORS.length]}"></span>${k} · ${(v/total*100).toFixed(0)}%</span>`).join('') || '<span>No language data available.</span>';
+
+  $('folderMeta').textContent = folders.length ? `${folders.length} folder${folders.length===1?'':'s'} analyzed, ranked by risk` : '';
+  if(folders.length){
+    $('folderRows').innerHTML = folders.map(f=>`<tr>
+      <td class="fname">${f.name}</td>
+      <td>${f.files}</td>
+      <td>${fmtSize(f.avgSize)}</td>
+      <td>${fmtLOC(f.locExact)}</td>
+      <td><span class="frisk"><span class="bar"><div style="width:${f.score}%;background:${colorOf(f.score)}"></div></span>
+        <span class="ftag ${f.level}">${f.score}</span></span></td>
+    </tr>`).join('');
+    $('folderNote').textContent = data.truncated
+      ? 'Note: this repository is large — folder analysis covers the first portion of the file tree returned by GitHub.'
+      : 'Risk per folder is a proxy based on file count and average file size, not a full static-analysis scan.';
+  } else {
+    $('folderRows').innerHTML = `<tr><td colspan="5" style="color:var(--muted2);">Folder structure unavailable for this repository.</td></tr>`;
+    $('folderNote').textContent = '';
+  }
+  $('locNote').textContent = data.live
+    ? `Exact count from ${analysis.locFilesCounted} source file${analysis.locFilesCounted===1?'':'s'} (binary assets, files over 2MB and lockfiles are excluded).`
+      + (analysis.locCapped ? ' Very large repository — scan capped at the first 500 countable files, so the total may undercount.' : '')
+    : 'Demo mode — line counts are illustrative placeholder figures, not counted from real files.';
+}
+
+function generatePDF(){
+  if(!LAST) return;
+  const { analysis, data, folders } = LAST;
+  const r = data.repoData;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const W = 595, M = 48; let y = 56;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(30,30,40);
+  doc.text('RepoPulse — Repository Risk Report', M, y); y += 20;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(110,110,120);
+  doc.text(`${r.full_name || r.name}  ·  generated ${new Date().toLocaleDateString()}  ·  ${data.live?'live GitHub data':'demo data (live fetch unavailable)'}`, M, y); y += 26;
+
+  doc.setDrawColor(220,220,230); doc.line(M, y, W-M, y); y += 22;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30,30,40);
+  doc.text('Executive Summary', M, y); y += 16;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(60,60,70);
+  const plain = analysis.summary.replace(/<[^>]+>/g,'');
+  doc.text(doc.splitTextToSize(plain, W-2*M), M, y); y += 52;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30,30,40);
+  doc.text(`Overall Risk: ${analysis.risk}/100 (${analysis.riskLevel.toUpperCase()})   ·   Completion: ${analysis.completion}% (${analysis.completionLabel})`, M, y); y += 16;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(60,60,70);
+  doc.text(`Total lines of code: ${analysis.locTotal.toLocaleString()} (counted across ${analysis.locFilesCounted} source files${analysis.locCapped ? ', scan capped for repo size' : ''})`, M, y); y += 22;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Risk Breakdown', M, y); y += 16;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(60,60,70);
+  [['Maintenance', analysis.maintenanceRisk], ['Ownership / bus factor', analysis.ownershipRisk],
+   ['Issue backlog', analysis.backlogRisk], ['License & governance', analysis.governanceRisk]].forEach(([k,v])=>{
+    doc.text(`${k}: ${v}/100`, M+8, y); y += 15;
+  });
+  y += 8;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30,30,40);
+  doc.text('Per-Folder Risk Report', M, y); y += 16;
+  doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(110,110,120);
+  doc.text('Folder', M, y); doc.text('Files', M+180, y); doc.text('Avg size', M+225, y); doc.text('LOC', M+295, y); doc.text('Risk', M+365, y); y += 8;
+  doc.setDrawColor(230,230,238); doc.line(M, y, W-M, y); y += 12;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60,60,70);
+  folders.forEach(f=>{
+    if(y > 760){ doc.addPage(); y = 56; }
+    doc.text(f.name.substring(0,26), M, y);
+    doc.text(String(f.files), M+180, y);
+    doc.text(fmtSize(f.avgSize), M+225, y);
+    doc.text(fmtLOC(f.locExact), M+295, y);
+    doc.text(`${f.score}/100 (${f.level})`, M+365, y);
+    y += 15;
+  });
+  y += 12;
+  if(y > 700){ doc.addPage(); y = 56; }
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30,30,40);
+  doc.text('Methodology', M, y); y += 16;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60,60,70);
+  const method = [
+    'Maintenance activity — days since last push, commit cadence.',
+    'Ownership & bus factor — number of active contributors.',
+    'Issue backlog — open issue volume relative to repo size.',
+    'License & governance — presence of a license and description quality.',
+    'Folder & file profile — file count, average size and exact lines of code per folder.',
+    'Language composition — technology mix across the codebase.',
+    'Codebase size — exact line counts read from each source file (binaries, files over 2MB and lockfiles are excluded).'
+  ];
+  method.forEach(m=>{ doc.text('• '+m, M, y); y += 15; });
+  y += 10;
+  doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(130,130,140);
+  doc.text('Powered by the GitHub REST API + rule-based risk and completion modeling. No repository cloning or code execution was performed.', M, y, {maxWidth:W-2*M});
+
+  doc.save(`RepoPulse_${(r.name||'repo')}_report.pdf`);
+}
+
+// --- Analysis history (stored locally in this browser via localStorage) ---
+const HISTORY_KEY = 'repopulse_history_v1';
+const HISTORY_MAX = 15;
+
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function persistHistory(list){
+  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); return true; }
+  catch(e){ return false; }
+}
+function saveToHistory(url, analysis, data, folders){
+  const r = data.repoData;
+  const fullName = r.full_name || r.name;
+  let list = loadHistory().filter(h => h.fullName !== fullName);
+  list.unshift({
+    ts: Date.now(), url, fullName,
+    risk: analysis.risk, riskLevel: analysis.riskLevel,
+    completion: analysis.completion, completionLabel: analysis.completionLabel,
+    live: data.live,
+    snapshot: {
+      analysis, folders,
+      data: { repoData: r, languages: data.languages, live: data.live, truncated: data.truncated }
+    }
+  });
+  if(list.length > HISTORY_MAX) list = list.slice(0, HISTORY_MAX);
+  persistHistory(list);
+  updateHistoryCount();
+}
+function deleteFromHistory(idx){
+  const list = loadHistory();
+  list.splice(idx,1);
+  persistHistory(list);
+  updateHistoryCount();
+  renderHistoryPanel();
+}
+function updateHistoryCount(){
+  const n = loadHistory().length;
+  const el = $('historyCount');
+  el.style.display = n ? 'inline-flex' : 'none';
+  el.textContent = n;
+}
+function formatRelative(ts){
+  const s = Math.round((Date.now()-ts)/1000);
+  if(s < 60) return 'just now';
+  if(s < 3600) return Math.floor(s/60)+'m ago';
+  if(s < 86400) return Math.floor(s/3600)+'h ago';
+  if(s < 2592000) return Math.floor(s/86400)+'d ago';
+  return new Date(ts).toLocaleDateString();
+}
+function renderHistoryPanel(){
+  const list = loadHistory();
+  const box = $('historyList');
+  if(!list.length){
+    box.innerHTML = '<div class="history-empty">No analyses yet — repos you analyze will be saved here for quick access.</div>';
+    return;
+  }
+  box.innerHTML = list.map((h,i)=>`<div class="history-row" data-idx="${i}">
+      <span class="hr-dot" style="background:${colorOf(h.risk)}"></span>
+      <div class="hr-main">
+        <div class="hr-name">${h.fullName}</div>
+        <div class="hr-meta">${h.completionLabel} · ${formatRelative(h.ts)} · ${h.live?'live':'demo'} data</div>
+      </div>
+      <div class="hr-score">Risk ${h.risk}/100</div>
+      <button class="hr-del" data-del="${i}" title="Remove">✕</button>
+    </div>`).join('');
+  box.querySelectorAll('.history-row').forEach(row=>{
+    row.addEventListener('click', e=>{
+      if(e.target.closest('.hr-del')) return;
+      loadFromHistory(+row.dataset.idx);
+    });
+  });
+  box.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', e=>{ e.stopPropagation(); deleteFromHistory(+btn.dataset.del); });
+  });
+}
+function loadFromHistory(idx){
+  const entry = loadHistory()[idx];
+  if(!entry) return;
+  const { analysis, data, folders } = entry.snapshot;
+  LAST = { analysis, data, folders };
+  $('urlInput').value = entry.url || '';
+  render(analysis, data, folders);
+  $('historyPanel').style.display = 'none';
+  $('result').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+$('historyBtn').addEventListener('click', ()=>{
+  const panel = $('historyPanel');
+  const show = panel.style.display === 'none';
+  if(show) renderHistoryPanel();
+  panel.style.display = show ? 'block' : 'none';
+});
+$('historyClear').addEventListener('click', ()=>{
+  persistHistory([]);
+  updateHistoryCount();
+  renderHistoryPanel();
+});
+updateHistoryCount();
+
+async function analyze(url){
+  const parsed = parseRepo(url);
+  if(!parsed){ alert('Please paste a valid GitHub repository URL.'); return; }
+  $('goBtn').disabled = true; $('goBtn').innerHTML = '<span class="spinner"></span> Analyzing…';
+  let data;
+  try{ data = await fetchLive(parsed.owner, parsed.repo); }
+  catch(e){ data = buildDemo(parsed.owner, parsed.repo); }
+  const analysis = computeAnalysis(data);
+  const folders = computeFolders(data);
+
+  if(data.live){
+    const branch = data.repoData.default_branch || 'main';
+    $('goBtn').innerHTML = '<span class="spinner"></span> Counting lines… 0/0';
+    let locResult;
+    try{
+      locResult = await countRepoLines(parsed.owner, parsed.repo, branch, data.tree, (done,total)=>{
+        $('goBtn').innerHTML = `<span class="spinner"></span> Counting lines… ${done}/${total}`;
+      });
+    }catch(e){ locResult = { totalLines:0, byFolder:{}, filesCounted:0, capped:false }; }
+    analysis.locTotal = locResult.totalLines;
+    analysis.locFilesCounted = locResult.filesCounted;
+    analysis.locCapped = locResult.capped;
+    folders.forEach(f => { f.locExact = locResult.byFolder[f.name] || 0; });
+  } else {
+    // Demo mode has no real files to read — show deterministic placeholder counts, clearly marked as demo.
+    let total = 0;
+    folders.forEach(f=>{
+      const linesPerFile = 20 + (hashStr(f.name + (data.repoData.full_name||'')) % 180);
+      f.locExact = linesPerFile * f.files;
+      total += f.locExact;
+    });
+    analysis.locTotal = total;
+    analysis.locFilesCounted = folders.reduce((s,f)=>s+f.files,0);
+    analysis.locCapped = false;
+  }
+
+  LAST = { analysis, data, folders };
+  render(analysis, data, folders);
+  saveToHistory(url.trim(), analysis, data, folders);
+  $('goBtn').disabled = false; $('goBtn').innerHTML = 'Analyze Repository';
+}
+
+$('goBtn').addEventListener('click', ()=> analyze($('urlInput').value));
+$('urlInput').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze($('urlInput').value); });
+$('demoBtn').addEventListener('click', ()=>{
+  $('urlInput').value = 'https://github.com/octocat/Hello-World';
+  analyze($('urlInput').value);
+});
+$('pdfBtn').addEventListener('click', generatePDF);
+</script>
+</body>
+</html>
